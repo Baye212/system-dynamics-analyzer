@@ -1,3 +1,43 @@
+*.py[cod]
+__pycache__/
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Pytest cache
+.pytest_cache/
+
+# IDEs
+.vscode/
+.idea/
+
+# Environment files
+.env
+*.env
+
+# Jupyter
+.ipynb_checkpoints
+
+# macOS
+.DS_Store
+
+# Streamlit cache
+.streamlit/
+
+# Logs
+*.log
+
+# Distribution
+*.tar.gz
 # Python
 __pycache__/
 *.py[cod]
