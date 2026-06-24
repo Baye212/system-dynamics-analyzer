@@ -1,161 +1,92 @@
 import streamlit as st
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from src.dynamics_analyzer import DynamicsAnalyzer
 
-def format_eigenvalues_display(eig_data):
-    """Formate l'affichage des valeurs propres en style LaTeX"""
-    st.markdown("### 📊 **Analyse des Valeurs Propres**")
-    
-    # Valeurs propres
-    eigenvalues = eig_data['valeurs_propres']
-    st.markdown("**Valeurs propres** $\\lambda$ :")
-    
-    if len(eigenvalues) == 2:
-        lambda1, lambda2 = eigenvalues
-        if np.iscomplexobj(lambda1) or np.iscomplexobj(lambda2):
-            # Nombres complexes
-            st.latex(f"\\lambda_1 = {lambda1:.3f}, \\quad \\lambda_2 = {lambda2:.3f}")
-        else:
-            # Nombres réels
-            st.latex(f"\\lambda_1 = {lambda1:.3f}, \\quad \\lambda_2 = {lambda2:.3f}")
-    else:
-        # Cas général
-        st.write(f"λ = {eigenvalues}")
-    
-    # Classification
-    st.markdown("**Classification** :")
-    for i, (val, cls) in enumerate(zip(eigenvalues, eig_data['classification'])):
-        if np.iscomplexobj(val):
-            if val.real < 0:
-                color = "🟢"
-            elif val.real > 0:
-                color = "🔴"
-            else:
-                color = "🟡"
-        else:
-            if val < 0:
-                color = "🟢"
-            elif val > 0:
-                color = "🔴"
-            else:
-                color = "🟡"
-        
-        st.markdown(f"- {color} $\\lambda_{i+1}$ : **{cls}**")
-    
-    # Nature du point fixe
-    nature = eig_data['nature']
-    st.markdown("**Nature du point fixe** :")
-    if "stable" in nature.lower():
-        st.success(f"🎯 **{nature}** - Le système converge vers le point fixe")
-    elif "instable" in nature.lower():
-        st.error(f"⚠️ **{nature}** - Le système diverge du point fixe")
-    elif "selle" in nature.lower():
-        st.warning(f"🔄 **{nature}** - Comportement mixte (stable/instable)")
-    elif "centre" in nature.lower():
-        st.info(f"🌀 **{nature}** - Oscillations périodiques")
-    else:
-        st.info(f"📊 **{nature}**")
-
-def format_subspaces_display(esp_data):
-    """Formate l'affichage des sous-espaces en style LaTeX"""
-    st.markdown("### 🧮 **Analyse des Sous-espaces Propres**")
-    
-    # Sous-espace stable
-    E_s_dim = esp_data['E_s_dim']
-    E_s_basis = esp_data['E_s_basis']
-    st.markdown("**Sous-espace Stable** $E_s$ :")
-    st.markdown(f"- **Dimension** : $\\dim(E_s) = {E_s_dim}$")
-    if E_s_basis:
-        st.markdown("- **Base** :")
-        for i, vec in enumerate(E_s_basis):
-            st.latex(f"\\mathbf{{v}}_{i+1}^s = \\begin{{pmatrix}} {vec[0]:.3f} \\\\ {vec[1]:.3f} \\end{{pmatrix}}")
-    else:
-        st.markdown("- **Base** : $\\emptyset$")
-    
-    # Sous-espace instable
-    E_u_dim = esp_data['E_u_dim']
-    E_u_basis = esp_data['E_u_basis']
-    st.markdown("**Sous-espace Instable** $E_u$ :")
-    st.markdown(f"- **Dimension** : $\\dim(E_u) = {E_u_dim}$")
-    if E_u_basis:
-        st.markdown("- **Base** :")
-        for i, vec in enumerate(E_u_basis):
-            st.latex(f"\\mathbf{{v}}_{i+1}^u = \\begin{{pmatrix}} {vec[0]:.3f} \\\\ {vec[1]:.3f} \\end{{pmatrix}}")
-    else:
-        st.markdown("- **Base** : $\\emptyset$")
-    
-    # Sous-espace centre
-    E_c_dim = esp_data['E_c_dim']
-    E_c_basis = esp_data['E_c_basis']
-    st.markdown("**Sous-espace Centre** $E_c$ :")
-    st.markdown(f"- **Dimension** : $\\dim(E_c) = {E_c_dim}$")
-    if E_c_basis:
-        st.markdown("- **Base** :")
-        for i, vec in enumerate(E_c_basis):
-            st.latex(f"\\mathbf{{v}}_{i+1}^c = \\begin{{pmatrix}} {vec[0]:.3f} \\\\ {vec[1]:.3f} \\end{{pmatrix}}")
-    else:
-        st.markdown("- **Base** : $\\emptyset$")
-
-def format_quadrant_analysis(quad_data):
-    """Formate l'analyse par quadrant"""
-    st.markdown("### 🧭 **Analyse par Quadrant**")
-    
-    # Tableau des quadrants
-    st.markdown("**Tableau des quadrants** :")
-    
-    # En-tête du tableau
-    col1, col2, col3, col4, col5 = st.columns(5)
-    with col1:
-        st.markdown("**Quadrant**")
-    with col2:
-        st.markdown("**Point**")
-    with col3:
-        st.markdown("**Signe (ẋ, ẏ)**")
-    with col4:
-        st.markdown("**Sens**")
-    with col5:
-        st.markdown("**Symbole**")
-    
-    for q in quad_data:
-        col1, col2, col3, col4, col5 = st.columns(5)
-        with col1:
-            st.write(f"Q{q['quadrant']}")
-        with col2:
-            st.write(f"({q['point'][0]:.2f}, {q['point'][1]:.2f})")
-        with col3:
-            st.write(f"({q['sign'][0]:.0f}, {q['sign'][1]:.0f})")
-        with col4:
-            st.write(q['sens'])
-        with col5:
-            if q['sens'] == 'Convergent':
-                st.write("🔄")
-            elif q['sens'] == 'Divergent':
-                st.write("📈")
-            elif q['sens'] == 'Tournant':
-                st.write("🌪️")
-            else:
-                st.write("📏")
-
+# ─── Configuration de la page (DOIT être en premier) ───────────────────────
 st.set_page_config(
-    page_title="Analyse Qualitative de Systèmes Dynamiques - Outil Interactif", 
+    page_title="Analyse Qualitative de Systèmes Dynamiques - Outil Interactif",
     page_icon="🔬",
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
         'Get Help': 'https://github.com/AZ473/system-dynamics-analyzer',
         'Report a bug': 'https://github.com/AZ473/system-dynamics-analyzer/issues',
-        'About': "Mory Diouf - Outil pédagogique pour l'analyse des systèmes dynamiques en 2D"
+        'About': "Mor DIOUF - Outil pédagogique pour l'analyse des systèmes dynamiques en 2D"
     }
 )
 
-# Métadonnées SEO
+# ─── SEO ────────────────────────────────────────────────────────────────────
 st.markdown("""
-<meta name="description" content="Outil interactif gratuit pour analyser qualitativement les systèmes dynamiques linéaires et non-linéaires. Analyse des valeurs propres, vecteurs propres, isoclines, portraits de phase.">
-<meta name="keywords" content="systèmes dynamiques, analyse qualitative, valeurs propres, vecteurs propres, portrait de phase, isoclines, stabilité, mathématiques appliquées">
-<meta name="author" content="Mory Diouf">
-<meta name="google-site-verification" content="IrUWbS1NZxO8bpVaINJJLL2vI9_nLcroUq8Ylu_Hv_w" />
+<meta name="description" content="Outil interactif gratuit pour analyser qualitativement les systèmes dynamiques linéaires et non-linéaires.">
+<meta name="keywords" content="systèmes dynamiques, analyse qualitative, valeurs propres, portrait de phase, isoclines, stabilité">
+<meta name="author" content="Mor DIOUF">
+<meta name="google-site-verification" content="IrUWbS1NZxO8bpVaINJJLL2vI9_nLcroUq8Ylu_Hv_w">
 """, unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Fonctions d'affichage
+# ═══════════════════════════════════════════════════════════════════════════
+
+def format_eigenvalues_display(eig_data):
+    """Formate l'affichage des valeurs propres en style LaTeX."""
+    st.markdown("### 📊 **Analyse des Valeurs Propres**")
+    eigenvalues = eig_data['valeurs_propres']
+    st.markdown("**Valeurs propres** $\\lambda$ :")
+    if len(eigenvalues) == 2:
+        lambda1, lambda2 = eigenvalues
+        st.latex(f"\\lambda_1 = {lambda1:.3f}, \\quad \\lambda_2 = {lambda2:.3f}")
+    else:
+        st.write(f"λ = {eigenvalues}")
+
+    st.markdown("**Classification** :")
+    for i, (val, cls) in enumerate(zip(eigenvalues, eig_data['classification'])):
+        if np.iscomplexobj(val):
+            color = "🟢" if val.real < 0 else ("🔴" if val.real > 0 else "🟡")
+        else:
+            color = "🟢" if val < 0 else ("🔴" if val > 0 else "🟡")
+        st.markdown(f"- {color} $\\lambda_{{{i+1}}}$ : **{cls}**")
+
+    nature = eig_data['nature']
+    st.markdown("**Nature du point fixe** :")
+    nl = nature.lower()
+    if "stable" in nl and "instable" not in nl:
+        st.success(f"🎯 **{nature}** - Le système converge vers le point fixe")
+    elif "instable" in nl:
+        st.error(f"⚠️ **{nature}** - Le système diverge du point fixe")
+    elif "selle" in nl:
+        st.warning(f"🔄 **{nature}** - Comportement mixte (stable/instable)")
+    elif "centre" in nl:
+        st.info(f"🌀 **{nature}** - Oscillations périodiques")
+    else:
+        st.info(f"📊 **{nature}**")
+
+
+def format_subspaces_display(esp_data):
+    """Formate l'affichage des sous-espaces en style LaTeX."""
+    st.markdown("### 🧮 **Analyse des Sous-espaces Propres**")
+
+    def show_space(label, dim, basis):
+        st.markdown(f"**{label}** :")
+        st.markdown(f"- **Dimension** : $\\dim = {dim}$")
+        if basis:
+            st.markdown("- **Base** :")
+            for i, vec in enumerate(basis):
+                st.latex(f"\\mathbf{{v}}_{i+1} = \\begin{{pmatrix}} {vec[0]:.3f} \\\\ {vec[1]:.3f} \\end{{pmatrix}}")
+        else:
+            st.markdown("- **Base** : $\\emptyset$")
+
+    show_space("Sous-espace Stable $E_s$",  esp_data['E_s_dim'], esp_data['E_s_basis'])
+    show_space("Sous-espace Instable $E_u$", esp_data['E_u_dim'], esp_data['E_u_basis'])
+    show_space("Sous-espace Centre $E_c$",  esp_data['E_c_dim'], esp_data['E_c_basis'])
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# En-tête principal
+# ═══════════════════════════════════════════════════════════════════════════
 
 st.markdown("""
 # 🔬 **Analyse Qualitative de Systèmes Dynamiques**
@@ -166,133 +97,236 @@ st.markdown("""
 - 📊 Analyse des valeurs propres et classification des points fixes
 - 🧮 Calcul des vecteurs propres et sous-espaces (stable, instable, centre)
 - 📈 Visualisation des isoclines orientées
-- 🧭 Analyse par quadrant du comportement du système
 - 🎨 Génération de portraits de phase complets
 - 📄 Export de rapports PDF détaillés
 
 ---
-
-## 🧑‍🏫 À propos
-
-Cette application a été développée par **Mory Diouf**, étudiant en master de mathématiques pures.
-Elle suit la méthodologie du professeur pour tracer les portraits de phase, analyser les valeurs propres et résoudre les exercices.
-L'outil reprend la démarche du cours pour offrir une analyse pas à pas des systèmes dynamiques en 2D.
-
----
-
 """)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Barre latérale — Configuration (clés uniques sur tous les widgets)
+# ═══════════════════════════════════════════════════════════════════════════
 
 st.sidebar.markdown("## ⚙️ **Configuration du Système**")
-st.sidebar.markdown("""
----
-## 📘 À propos
-Créée par **Mory Diouf**, étudiant en master de mathématiques pures.
-Basée sur la méthode du professeur, cette application suit une démarche pédagogique pour l'analyse qualitative des systèmes dynamiques en 2D.
-""")
-system_type = st.sidebar.selectbox("Type de système", ["Linéaire", "Non-linéaire", "Exemple prédéfini"])
 
-if system_type == "Linéaire":
-    st.sidebar.subheader("Matrice A (2x2)")
-    a11 = st.sidebar.number_input("a11", value=1.0)
-    a12 = st.sidebar.number_input("a12", value=0.0)
-    a21 = st.sidebar.number_input("a21", value=0.0)
-    a22 = st.sidebar.number_input("a22", value=1.0)
-    domain = st.sidebar.text_input("Domaine [xmin xmax ymin ymax]", "-5 5 -5 5")
-    if st.sidebar.button("Analyser"):
-        A = np.array([[a11, a12], [a21, a22]])
-        domain_vals = list(map(float, domain.split()))
-        analyzer = DynamicsAnalyzer(A, tuple(domain_vals))
-        st.session_state['analyzer'] = analyzer
-elif system_type == "Non-linéaire":
-    st.sidebar.subheader("Fonctions f₁(x₁,x₂), f₂(x₁,x₂)")
-    f1 = st.sidebar.text_input("f₁(x₁,x₂)", "x1 - x2 + x1**2")
-    f2 = st.sidebar.text_input("f₂(x₁,x₂)", "-x1 + 2*x2")
-    domain = st.sidebar.text_input("Domaine [xmin xmax ymin ymax]", "-5 5 -5 5")
-    if st.sidebar.button("Analyser"):
-        def fun1(x1, x2):
-            return eval(f1, {"x1": x1, "x2": x2, "np": np})
-        def fun2(x1, x2):
-            return eval(f2, {"x1": x1, "x2": x2, "np": np})
-        domain_vals = list(map(float, domain.split()))
-        analyzer = DynamicsAnalyzer((fun1, fun2), tuple(domain_vals))
-        st.session_state['analyzer'] = analyzer
-else:
-    st.sidebar.subheader("Exemples prédéfinis")
-    ex = st.sidebar.selectbox("Exemple", [
-        "Nœud stable", "Selle", "Centre", "Spirale stable", "Système non-linéaire simple"
-    ])
-    if st.sidebar.button("Analyser"):
-        if ex == "Nœud stable":
-            A = np.array([[-2, 1], [1, -3]])
-            domain = (-3, 3, -3, 3)
-            analyzer = DynamicsAnalyzer(A, domain)
-        elif ex == "Selle":
-            A = np.array([[1, 2], [2, 1]])
-            domain = (-3, 3, -3, 3)
-            analyzer = DynamicsAnalyzer(A, domain)
-        elif ex == "Centre":
-            A = np.array([[0, -1], [1, 0]])
-            domain = (-3, 3, -3, 3)
-            analyzer = DynamicsAnalyzer(A, domain)
-        elif ex == "Spirale stable":
-            A = np.array([[-1, -2], [2, -1]])
-            domain = (-3, 3, -3, 3)
-            analyzer = DynamicsAnalyzer(A, domain)
-        else:
-            def f1(x1, x2): return x1*(1 - x1 - x2)
-            def f2(x1, x2): return x2*(x1 - 0.5)
-            domain = (0, 1.5, 0, 1.5)
-            analyzer = DynamicsAnalyzer((f1, f2), domain)
-        st.session_state['analyzer'] = analyzer
+system_type = st.sidebar.selectbox(
+    "Type de système",
+    ["Linéaire", "Non-linéaire", "Exemple prédéfini"],
+    key="sb_system_type"
+)
+
+# --- Formulaire selon le type (on garde les mêmes widgets même si vides) ---
+# Linéaire
+with st.sidebar.expander("📐 Matrice A (2×2)", expanded=(system_type == "Linéaire")):
+    a11 = st.number_input("a₁₁", value=1.0, key="ni_a11")
+    a12 = st.number_input("a₁₂", value=0.0, key="ni_a12")
+    a21 = st.number_input("a₂₁", value=0.0, key="ni_a21")
+    a22 = st.number_input("a₂₂", value=1.0, key="ni_a22")
+    domain_lin = st.text_input("Domaine [xmin xmax ymin ymax]", "-5 5 -5 5", key="ti_domain_lin")
+    btn_linear = st.button("▶ Analyser (Linéaire)", key="btn_linear", disabled=(system_type != "Linéaire"))
+
+# Non-linéaire
+with st.sidebar.expander("📐 Fonctions f₁, f₂", expanded=(system_type == "Non-linéaire")):
+    f1_input = st.text_input("f₁(x₁, x₂)", "x1 - x2 + x1**2", key="ti_f1")
+    f2_input = st.text_input("f₂(x₁, x₂)", "-x1 + 2*x2", key="ti_f2")
+    domain_nl = st.text_input("Domaine [xmin xmax ymin ymax]", "-5 5 -5 5", key="ti_domain_nl")
+    btn_nonlin = st.button("▶ Analyser (Non-linéaire)", key="btn_nonlin", disabled=(system_type != "Non-linéaire"))
+
+# Exemples prédéfinis
+EXEMPLES = ["Nœud stable", "Selle", "Centre", "Spirale stable", "Système non-linéaire simple"]
+with st.sidebar.expander("📚 Exemples prédéfinis", expanded=(system_type == "Exemple prédéfini")):
+    ex_choice = st.selectbox("Exemple", EXEMPLES, key="sb_example")
+    btn_example = st.button("▶ Charger l'exemple", key="btn_example", disabled=(system_type != "Exemple prédéfini"))
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Logique d'analyse (construction de l'analyseur)
+# ═══════════════════════════════════════════════════════════════════════════
+
+def build_analyzer_linear():
+    A = np.array([[a11, a12], [a21, a22]])
+    domain_vals = tuple(map(float, domain_lin.split()))
+    return DynamicsAnalyzer(A, domain_vals)
+
+def build_analyzer_nonlinear():
+    domain_vals = tuple(map(float, domain_nl.split()))
+    return DynamicsAnalyzer((f1_input, f2_input), domain_vals)
+
+def build_analyzer_example(name):
+    configs = {
+        "Nœud stable":               (np.array([[-2., 1.], [1., -3.]]),  (-3, 3, -3, 3)),
+        "Selle":                     (np.array([[1., 2.], [2., 1.]]),    (-3, 3, -3, 3)),
+        "Centre":                    (np.array([[0., -1.], [1., 0.]]),   (-3, 3, -3, 3)),
+        "Spirale stable":            (np.array([[-1., -2.], [2., -1.]]), (-3, 3, -3, 3)),
+        "Système non-linéaire simple": (("x1*(1 - x1 - x2)", "x2*(x1 - 0.5)"), (0, 1.5, 0, 1.5)),
+    }
+    system, domain = configs[name]
+    return DynamicsAnalyzer(system, domain)
+
+error_msg = None
+
+if btn_linear:
+    try:
+        st.session_state['analyzer'] = build_analyzer_linear()
+        st.session_state['analyzer_type'] = 'linear'
+    except Exception as e:
+        error_msg = f"Erreur (linéaire) : {e}"
+
+if btn_nonlin:
+    try:
+        st.session_state['analyzer'] = build_analyzer_nonlinear()
+        st.session_state['analyzer_type'] = 'nonlinear'
+    except Exception as e:
+        error_msg = f"Erreur (non-linéaire) : {e}"
+
+if btn_example:
+    try:
+        st.session_state['analyzer'] = build_analyzer_example(ex_choice)
+        st.session_state['analyzer_type'] = 'example'
+    except Exception as e:
+        error_msg = f"Erreur (exemple) : {e}"
+
+if error_msg:
+    st.error(error_msg)
 
 analyzer = st.session_state.get('analyzer', None)
 
-if analyzer:
-    st.markdown("---")
-    st.markdown("## 🔍 **Étape 1 : Analyse des Valeurs Propres**")
-    try:
-        eig = analyzer.analyze_eigenvalues()
-        format_eigenvalues_display(eig)
-    except Exception as e:
-        st.warning(f"⚠️ **Non applicable** : {e}")
-    
-    st.markdown("---")
-    st.markdown("## 🧮 **Étape 2 : Vecteurs Propres et Sous-espaces**")
-    try:
-        esp = analyzer.compute_eigenspaces(plot=False)
-        format_subspaces_display(esp)
-    except Exception as e:
-        st.warning(f"⚠️ **Non applicable** : {e}")
-    
-    st.markdown("---")
-    st.markdown("## 📊 **Étape 3 : Isoclines Orientées**")
-    st.markdown("*Les isoclines séparent les régions de directions opposées du flux*")
-    analyzer.plot_isoclines(plot=False)
-    st.pyplot(plt.gcf())
-    plt.close()
-    
-    st.markdown("---")
-    st.markdown("## 🧭 **Étape 4 : Analyse par Quadrant**")
-    quad = analyzer.quadrant_analysis()
-    format_quadrant_analysis(quad)
-    
-    st.markdown("---")
-    st.markdown("## 🎨 **Étape 5 : Portrait de Phase Final**")
-    st.markdown("*Synthèse complète : isoclines, trajectoires, et analyse qualitative*")
-    analyzer.plot_final_phase_portrait(plot=False)
-    st.pyplot(plt.gcf())
-    plt.close()
-    
-    st.markdown("---")
-    st.markdown("## 📄 **Rapport PDF**")
-    if st.button("📥 **Générer le rapport PDF**", type="primary"):
-        with st.spinner("Génération du rapport en cours..."):
-            filename = analyzer.generate_report()
-            with open(filename, "rb") as f:
-                st.download_button(
-                    "📥 **Télécharger le rapport PDF**", 
-                    f, 
-                    file_name=filename, 
-                    mime="application/pdf",
-                    type="primary"
-                )
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Zone principale — Résultats (structure DOM STABLE via st.tabs)
+# ═══════════════════════════════════════════════════════════════════════════
+
+if analyzer is None:
+    st.info("👈 Configurez un système dans la barre latérale puis cliquez sur **Analyser**.")
+else:
+    # ── Sélection du point fixe (non-linéaire) ──────────────────────────
+    selected_point_data = None
+    if not analyzer.is_linear:
+        st.markdown("---")
+        st.markdown("## 📍 **Points Fixes Réels Détectés**")
+        if analyzer.fixed_points_data:
+            n_pts = len(analyzer.fixed_points_data)
+            st.success(f"Le système non-linéaire possède **{n_pts}** point(s) fixe(s) réel(s) dans le domaine.")
+            options = [
+                f"Point #{i+1} : ({pt['point'][0]:.3f}, {pt['point'][1]:.3f}) — {pt['nature']}"
+                for i, pt in enumerate(analyzer.fixed_points_data)
+            ]
+            # Clé fixe + index stocké en session pour éviter les re-rendus
+            sel_idx = st.radio(
+                "Sélectionner un point fixe pour l'analyse locale :",
+                range(len(options)),
+                format_func=lambda i: options[i],
+                key="radio_fixed_point",
+                horizontal=True,
+            )
+            selected_point_data = analyzer.fixed_points_data[sel_idx]
+        else:
+            st.warning("⚠️ Aucun point fixe réel n'a été détecté dans le domaine d'étude.")
+
+    # ── Onglets d'analyse (structure stable) ────────────────────────────
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "🔍 Étape 1 : Valeurs propres",
+        "🧮 Étape 2 : Sous-espaces",
+        "📊 Étape 3 : Isoclines",
+        "🎨 Étape 4 : Portrait de phase",
+        "📄 Rapport PDF",
+    ])
+
+    # ── Onglet 1 : Valeurs propres ───────────────────────────────────────
+    with tab1:
+        st.markdown("---")
+        if analyzer.is_linear:
+            try:
+                eig = analyzer.analyze_eigenvalues()
+                format_eigenvalues_display(eig)
+            except Exception as e:
+                st.warning(f"⚠️ **Non applicable** : {e}")
+        else:
+            if selected_point_data:
+                px, py = selected_point_data['point']
+                st.markdown(f"Analyse linéarisée au point fixe **({px:.3f}, {py:.3f})** :")
+                eig_temp = {
+                    'valeurs_propres': selected_point_data['valeurs_propres'],
+                    'classification':  selected_point_data['classification'],
+                    'nature':          selected_point_data['nature'],
+                }
+                format_eigenvalues_display(eig_temp)
+            else:
+                st.warning("⚠️ Aucun point fixe disponible.")
+
+    # ── Onglet 2 : Sous-espaces ─────────────────────────────────────────
+    with tab2:
+        st.markdown("---")
+        if analyzer.is_linear:
+            try:
+                esp = analyzer.compute_eigenspaces(plot=False)
+                format_subspaces_display(esp)
+            except Exception as e:
+                st.warning(f"⚠️ **Non applicable** : {e}")
+        else:
+            if selected_point_data:
+                px, py = selected_point_data['point']
+                st.markdown(f"Sous-espaces de la linéarisation locale au point fixe **({px:.3f}, {py:.3f})** :")
+                format_subspaces_display(selected_point_data['eigenspaces'])
+            else:
+                st.warning("⚠️ Aucun point fixe disponible.")
+
+    # ── Onglet 3 : Isoclines ────────────────────────────────────────────
+    with tab3:
+        st.markdown("---")
+        st.markdown("*Les isoclines séparent les régions de directions opposées du flux.*")
+        with st.spinner("Calcul des isoclines..."):
+            fig_iso = analyzer.plot_isoclines(plot=False)
+        st.pyplot(fig_iso, clear_figure=True)
+        plt.close(fig_iso)
+
+    # ── Onglet 4 : Portrait de phase ────────────────────────────────────
+    with tab4:
+        st.markdown("---")
+        st.markdown("*Synthèse complète : isoclines, trajectoires et analyse qualitative.*")
+        with st.spinner("Génération du portrait de phase..."):
+            fig_phase = analyzer.plot_final_phase_portrait(plot=False)
+        st.pyplot(fig_phase, clear_figure=True)
+        plt.close(fig_phase)
+
+    # ── Onglet 5 : Rapport PDF ───────────────────────────────────────────
+    with tab5:
+        st.markdown("---")
+        st.markdown("Cliquez ci-dessous pour générer et télécharger le rapport PDF complet.")
+        if st.button("📥 Générer le rapport PDF", type="primary", key="btn_generate_pdf"):
+            with st.spinner("Génération du rapport en cours..."):
+                try:
+                    filename = analyzer.generate_report()
+                    with open(filename, "rb") as f_pdf:
+                        st.download_button(
+                            label="📥 Télécharger le rapport PDF",
+                            data=f_pdf,
+                            file_name=filename,
+                            mime="application/pdf",
+                            type="primary",
+                            key="btn_download_pdf",
+                        )
+                    st.success("✅ Rapport généré avec succès !")
+                except Exception as e:
+                    st.error(f"❌ Erreur lors de la génération : {e}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Pied de page
+# ═══════════════════════════════════════════════════════════════════════════
+
+st.markdown("---")
+st.markdown("## 🧑‍🏫 À propos")
+st.markdown(
+    "Cette application a été développée par **Mor DIOUF**, étudiant en **Master 2 Mathématiques Pures** "
+    "à l'Université Assane Seck de Ziguinchor."
+)
+st.markdown(
+    "Elle est conçue pour les étudiants de l'Université Assane Seck de Ziguinchor, "
+    "ainsi que pour toute personne souhaitant apprendre les systèmes dynamiques."
+)
+st.markdown(
+    "L'application suit la méthodologie du professeur pour tracer les portraits de phase, "
+    "analyser les valeurs propres et résoudre les exercices."
+)

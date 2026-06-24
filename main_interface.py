@@ -37,46 +37,58 @@ def main():
             domain = (-5,5,-5,5)
             analyzer = DynamicsAnalyzer(A, domain)
         elif ex == '4':
-            def f1(x1, x2): return -x1 - x2 + 0.1*x1**2
-            def f2(x1, x2): return x1 - x2
+            f1 = "-x1 - x2 + 0.1*x1**2"
+            f2 = "x1 - x2"
             domain = (-5,5,-5,5)
             analyzer = DynamicsAnalyzer((f1, f2), domain)
         elif ex == '5':
-            def f1(x1, x2): return x1 - x2**2
-            def f2(x1, x2): return -x1 + x2
+            f1 = "x1 - x2**2"
+            f2 = "-x1 + x2"
             domain = (-5,5,-5,5)
             analyzer = DynamicsAnalyzer((f1, f2), domain)
         else:
             print("Exemple inconnu.")
             sys.exit(1)
-    # Étape 2: Valeurs propres
-    step("Étape 2: Valeurs propres + classification")
-    try:
-        eig = analyzer.analyze_eigenvalues()
-        print("Valeurs propres:", eig['valeurs_propres'])
-        print("Classification:", eig['classification'])
-        print("Nature:", eig['nature'])
-    except Exception as e:
-        print("Non applicable (non-linéaire ou erreur):", e)
-    # Étape 3: Vecteurs propres et sous-espaces
-    step("Étape 3: Vecteurs propres + sous-espaces")
-    try:
-        esp = analyzer.compute_eigenspaces()
-        print("Eₛ (stable): dim=", esp['E_s_dim'], "base:", esp['E_s_basis'])
-        print("Eᵤ (instable): dim=", esp['E_u_dim'], "base:", esp['E_u_basis'])
-        print("E꜀ (centre): dim=", esp['E_c_dim'], "base:", esp['E_c_basis'])
-    except Exception as e:
-        print("Non applicable (non-linéaire ou erreur):", e)
+    # Étape 2: Valeurs propres et Étape 3: Sous-espaces
+    if analyzer.is_linear:
+        step("Étape 2: Valeurs propres + classification")
+        try:
+            eig = analyzer.analyze_eigenvalues()
+            print("Valeurs propres:", eig['valeurs_propres'])
+            print("Classification:", eig['classification'])
+            print("Nature:", eig['nature'])
+        except Exception as e:
+            print("Erreur:", e)
+        # Étape 3: Vecteurs propres et sous-espaces
+        step("Étape 3: Vecteurs propres + sous-espaces")
+        try:
+            esp = analyzer.compute_eigenspaces()
+            print("Eₛ (stable): dim=", esp['E_s_dim'], "base:", esp['E_s_basis'])
+            print("Eᵤ (instable): dim=", esp['E_u_dim'], "base:", esp['E_u_basis'])
+            print("E꜀ (centre): dim=", esp['E_c_dim'], "base:", esp['E_c_basis'])
+        except Exception as e:
+            print("Erreur:", e)
+    else:
+        step("Étape 2 & 3: Analyse des Points Fixes (Système Non-Linéaire)")
+        if analyzer.fixed_points_data:
+            print(f"Nombre de points fixes réels détectés dans le domaine : {len(analyzer.fixed_points_data)}")
+            for idx, pt in enumerate(analyzer.fixed_points_data):
+                px, py = pt['point']
+                print(f"\n--- Point Fixe #{idx+1} : ({px:.3f}, {py:.3f}) ---")
+                print(f"Nature locale : {pt['nature']}")
+                print(f"Valeurs propres : {pt['valeurs_propres']}")
+                print(f"Classification : {pt['classification']}")
+                esp = pt['eigenspaces']
+                print(f"Sous-espace Stable (Eₛ)   : dim={esp['E_s_dim']}, base={esp['E_s_basis']}")
+                print(f"Sous-espace Instable (Eᵤ) : dim={esp['E_u_dim']}, base={esp['E_u_basis']}")
+                print(f"Sous-espace Centre (E꜀)   : dim={esp['E_c_dim']}, base={esp['E_c_basis']}")
+        else:
+            print("Aucun point fixe réel détecté dans le domaine.")
     # Étape 4: Isoclines
     step("Étape 4: Graphique isoclines + orientation")
     analyzer.plot_isoclines()
-    # Étape 5: Analyse quadrant
-    step("Étape 5: Tableau analyse par quadrant")
-    quad = analyzer.quadrant_analysis()
-    for q in quad:
-        print(f"Quadrant {q['quadrant']} : point {q['point']} signe {q['sign']} sens {q['sens']}")
-    # Étape 6: Portrait de phase final
-    step("Étape 6: Portrait de phase final intégré")
+    # Étape 5: Portrait de phase final
+    step("Étape 5: Portrait de phase final intégré")
     analyzer.plot_final_phase_portrait()
     # Export PDF (optionnel)
     try:
