@@ -145,7 +145,7 @@ st.set_page_config(
     menu_items={
         'Get Help': 'https://github.com/AZ473/system-dynamics-analyzer',
         'Report a bug': 'https://github.com/AZ473/system-dynamics-analyzer/issues',
-        'About': "Outil pédagogique pour l'analyse complète des systèmes dynamiques linéaires et non-linéaires"
+        'About': "Mory Diouf - Outil pédagogique pour l'analyse des systèmes dynamiques en 2D"
     }
 )
 
@@ -153,7 +153,8 @@ st.set_page_config(
 st.markdown("""
 <meta name="description" content="Outil interactif gratuit pour analyser qualitativement les systèmes dynamiques linéaires et non-linéaires. Analyse des valeurs propres, vecteurs propres, isoclines, portraits de phase.">
 <meta name="keywords" content="systèmes dynamiques, analyse qualitative, valeurs propres, vecteurs propres, portrait de phase, isoclines, stabilité, mathématiques appliquées">
-<meta name="author" content="AZ473">
+<meta name="author" content="Mory Diouf">
+<meta name="google-site-verification" content="IrUWbS1NZxO8bpVaINJJLL2vI9_nLcroUq8Ylu_Hv_w" />
 """, unsafe_allow_html=True)
 
 st.markdown("""
@@ -171,9 +172,23 @@ st.markdown("""
 
 ---
 
+## 🧑‍🏫 À propos
+
+Cette application a été développée par **Mory Diouf**, étudiant en master de mathématiques pures.
+Elle suit la méthodologie du professeur pour tracer les portraits de phase, analyser les valeurs propres et résoudre les exercices.
+L'outil reprend la démarche du cours pour offrir une analyse pas à pas des systèmes dynamiques en 2D.
+
+---
+
 """)
 
 st.sidebar.markdown("## ⚙️ **Configuration du Système**")
+st.sidebar.markdown("""
+---
+## 📘 À propos
+Créée par **Mory Diouf**, étudiant en master de mathématiques pures.
+Basée sur la méthode du professeur, cette application suit une démarche pédagogique pour l'analyse qualitative des systèmes dynamiques en 2D.
+""")
 system_type = st.sidebar.selectbox("Type de système", ["Linéaire", "Non-linéaire", "Exemple prédéfini"])
 
 if system_type == "Linéaire":
