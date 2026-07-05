@@ -111,7 +111,7 @@ def plot_final_phase_portrait(analyzer, n_trajectories=8, traj_len=10, plot=True
     
     # Paramètres du tracé
     x_min, x_max, y_min, y_max = analyzer.domain
-    num_points = 15
+    num_points = 40
     t_span = [0, traj_len]
     t_eval = np.linspace(t_span[0], t_span[1], 500)
     
@@ -124,9 +124,16 @@ def plot_final_phase_portrait(analyzer, n_trajectories=8, traj_len=10, plot=True
     U, V = np.zeros_like(X), np.zeros_like(Y)
     for i in range(len(x_grid)):
         for j in range(len(y_grid)):
-            u_val, v_val = field_vector(X[i, j], Y[i, j])
-            U[i, j] = u_val
-            V[i, j] = v_val
+            try:
+                u_val, v_val = field_vector(X[i, j], Y[i, j])
+                U[i, j] = u_val
+                V[i, j] = v_val
+            except Exception:
+                U[i, j] = 0.0
+                V[i, j] = 0.0
+    # Nettoyer les valeurs non finies pour streamplot
+    U = np.nan_to_num(U, nan=0.0, posinf=0.0, neginf=0.0)
+    V = np.nan_to_num(V, nan=0.0, posinf=0.0, neginf=0.0)
     
     # Conditions initiales variées
     if isinstance(analyzer.system, np.ndarray):
@@ -164,7 +171,13 @@ def plot_final_phase_portrait(analyzer, n_trajectories=8, traj_len=10, plot=True
     fig, ax = plt.subplots(figsize=(12, 10))
     
     # 1. Champ de vecteurs en arrière-plan
-    ax.quiver(X, Y, U, V, scale=30, color='lightblue', alpha=0.6, width=0.005)
+    # Streamplot : lignes de courant courbes qui ne se croisent jamais
+    # (respecte le théorème d'unicité de Cauchy-Lipschitz)
+    speed = np.sqrt(U**2 + V**2)
+    speed_max = speed.max() if speed.max() > 0 else 1.0
+    lw = 0.5 + 2.0 * speed / speed_max  # épaisseur proportionnelle à la vitesse
+    ax.streamplot(X, Y, U, V, color=speed, cmap='cool', density=1.8,
+                  linewidth=lw, arrowsize=1.2, arrowstyle='->', broken_streamlines=False)
     
     # 2. Trajectoires avec couleurs distinctes
     colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'olive', 'cyan', 'magenta', 'yellow']
