@@ -165,100 +165,175 @@ class DynamicsAnalyzer:
         return plot_final_phase_portrait(self, n_trajectories=n_trajectories, traj_len=traj_len, plot=plot)
 
     def generate_report(self, filename="rapport_analyse.pdf") -> str:
-        """Génère le rapport PDF pédagogique complet."""
+        """Génère le rapport PDF pédagogique complet style LaTeX."""
         import matplotlib.pyplot as plt
         from matplotlib.backends.backend_pdf import PdfPages
-        
+        import matplotlib as mpl
+        import numpy as np
+
+        # Configurer Matplotlib pour un rendu MathText style LaTeX
+        mpl.rcParams['mathtext.fontset'] = 'cm'
+        mpl.rcParams['font.family'] = 'STIXGeneral'
+        mpl.rcParams['font.size'] = 12
+
+        def format_complex(c):
+            if np.isreal(c) or np.isclose(c.imag, 0):
+                return f"{c.real:.3f}"
+            sign = "+" if c.imag > 0 else "-"
+            return f"{c.real:.3f} {sign} {abs(c.imag):.3f}i"
+
+        def explain_stability(eigenvalues, nature):
+            if len(eigenvalues) == 0:
+                return "Aucune valeur propre à analyser."
+            l1, l2 = eigenvalues[0], eigenvalues[1]
+            txt = f"Soient les valeurs propres $\lambda_1 = {format_complex(l1)}$ et $\lambda_2 = {format_complex(l2)}$.\n\n"
+            
+            if np.isrealobj(eigenvalues) or (np.isclose(l1.imag, 0) and np.isclose(l2.imag, 0)):
+                if l1.real < 0 and l2.real < 0:
+                    txt += "Les deux valeurs propres sont réelles et strictement négatives.\n"
+                    txt += "Par conséquent, le point d'équilibre est asymptotiquement stable.\n"
+                elif l1.real > 0 and l2.real > 0:
+                    txt += "Les deux valeurs propres sont réelles et strictement positives.\n"
+                    txt += "Par conséquent, le point d'équilibre est instable.\n"
+                elif l1.real * l2.real < 0:
+                    txt += "Les valeurs propres sont réelles et de signes opposés.\n"
+                    txt += "Le point d'équilibre est un point col (ou selle), qui est instable.\n"
+                else:
+                    txt += "L'une des valeurs propres au moins est nulle.\n"
+            else:
+                alpha = l1.real
+                txt += f"Les valeurs propres sont complexes conjuguées, de partie réelle $\\alpha = {alpha:.3f}$.\n"
+                if alpha < 0:
+                    txt += "Comme $\\alpha < 0$, les trajectoires spiralent vers le point d'équilibre.\n"
+                    txt += "Le point est asymptotiquement stable.\n"
+                elif alpha > 0:
+                    txt += "Comme $\\alpha > 0$, les trajectoires s'éloignent en spiralant.\n"
+                    txt += "Le point est instable.\n"
+                else:
+                    txt += "Comme $\\alpha = 0$, les valeurs propres sont des imaginaires purs.\n"
+                    txt += "Le système linéarisé présente un centre (oscillations périodiques).\n"
+            txt += f"\nConclusion : {nature}."
+            return txt
+
         def add_text_page(pdf, title, content):
             fig, ax = plt.subplots(figsize=(8.3, 11.7))
             ax.axis('off')
             ax.text(0.5, 0.95, title, fontsize=18, ha='center', va='top', weight='bold')
-            ax.text(0.05, 0.9, content, fontsize=12, ha='left', va='top', wrap=True)
+            ax.text(0.05, 0.88, content, fontsize=12, ha='left', va='top', wrap=True, linespacing=1.6)
             pdf.savefig(fig)
             plt.close(fig)
-            
+
         with PdfPages(filename) as pdf:
             # 1. Système étudié
-            sys_txt = "Système étudié :\n"
+            sys_title = "1. Définition du Système Dynamique"
             if self.is_linear:
-                sys_txt += f"Système linéaire :\nA = {self.system}\n\nÉquations :\n"
-                sys_txt += f"x' = {self.system[0,0]:.2f} x + {self.system[0,1]:.2f} y\n"
-                sys_txt += f"y' = {self.system[1,0]:.2f} x + {self.system[1,1]:.2f} y"
+                A = self.system
+                sys_content = "Le système étudié est un système dynamique linéaire plan défini par :\n\n"
+                sys_content += "$\dot{\mathbf{X}} = A \mathbf{X}$\n\n"
+                sys_content += "Avec la matrice $A$ suivante :\n\n"
+                sys_content += f"A = [ {A[0,0]:.2f}  {A[0,1]:.2f} ]\n"
+                sys_content += f"    [ {A[1,0]:.2f}  {A[1,1]:.2f} ]\n\n"
+                sys_content += "Soit sous forme de système d'équations :\n"
+                sys_content += f"$\\dot{{x}} = {A[0,0]:.2f} x + {A[0,1]:.2f} y$\n"
+                sys_content += f"$\\dot{{y}} = {A[1,0]:.2f} x + {A[1,1]:.2f} y$\n"
             else:
-                sys_txt += "Système non-linéaire :\n"
+                sys_content = "Le système étudié est un système dynamique non-linéaire plan défini par :\n\n"
+                sys_content += "$\dot{x} = f_1(x, y)$\n"
+                sys_content += "$\dot{y} = f_2(x, y)$\n\n"
                 if self.f1_str and self.f2_str:
-                    sys_txt += f"x' = {self.f1_str}\ny' = {self.f2_str}\n"
-                else:
-                    sys_txt += "x' = f₁(x, y)\ny' = f₂(x, y)\n"
-            sys_txt += f"\nDomaine d'étude : {self.domain}"
-            add_text_page(pdf, "1. Système étudié", sys_txt + "\n\nCe système sera analysé qualitativement selon la méthode en 5 étapes.")
-            
-            # 2. Valeurs propres et classification
+                    sys_content += "Les fonctions du système sont :\n"
+                    f1_tex = self.f1_str.replace('**', '^').replace('*', '')
+                    f2_tex = self.f2_str.replace('**', '^').replace('*', '')
+                    sys_content += f"$\\dot{{x}} = {f1_tex}$\n"
+                    sys_content += f"$\\dot{{y}} = {f2_tex}$\n"
+            sys_content += f"\nDomaine d'étude spatial : $x \in [{self.domain[0]}, {self.domain[1]}]$, $y \in [{self.domain[2]}, {self.domain[3]}]$.\n"
+            add_text_page(pdf, sys_title, sys_content)
+
+            # 2. Points Fixes
+            stab_title = "2. Points d'Équilibre et Stabilité Locale"
             if self.is_linear:
                 eig = self.report['eigen']
-                eig_txt = f"Valeurs propres : {eig['valeurs_propres']}\nClassification : {eig['classification']}\nNature : {eig['nature']}\n\n"
-                eig_txt += "\nLes valeurs propres déterminent la stabilité locale du point fixe.\n"
+                content = "Le système étant linéaire et homogène, l'origine $(0,0)$ est un point d'équilibre.\n\n"
+                content += explain_stability(eig['valeurs_propres'], eig['nature'])
+                add_text_page(pdf, stab_title, content)
             else:
-                eig_txt = "Système Non-Linéaire - Analyse des Points Fixes :\n\n"
                 if self.fixed_points_data:
                     for idx, pt in enumerate(self.fixed_points_data):
                         px, py = pt['point']
-                        eig_txt += f"Point Fixe #{idx+1} : ({px:.3f}, {py:.3f})\n"
-                        eig_txt += f"  - Valeurs propres : {pt['valeurs_propres']}\n"
-                        eig_txt += f"  - Classification : {pt['classification']}\n"
-                        eig_txt += f"  - Nature locale : {pt['nature']}\n\n"
+                        content = f"Point d'équilibre $P_{idx+1} = ({px:.3f}, {py:.3f})$\n\n"
+                        content += "Pour étudier la stabilité locale, on linéarise le système autour de ce point\n"
+                        content += "en calculant la matrice Jacobienne $J(P)$ :\n\n"
+                        J = pt['jacobian']
+                        content += f"J(P) = [ {J[0,0]:.2f}  {J[0,1]:.2f} ]\n"
+                        content += f"       [ {J[1,0]:.2f}  {J[1,1]:.2f} ]\n\n"
+                        content += explain_stability(pt['valeurs_propres'], pt['nature'])
+                        add_text_page(pdf, f"2.{idx+1} Étude du point ({px:.2f}, {py:.2f})", content)
                 else:
-                    eig_txt += "Aucun point fixe trouvé dans le domaine.\n"
-            add_text_page(pdf, "2. Valeurs propres et classification", eig_txt)
+                    add_text_page(pdf, stab_title, "Aucun point fixe réel n'a été trouvé dans le domaine d'étude.")
+
+            # 3. Sous-espaces Propres
+            esp_title = "3. Décomposition des Sous-espaces Propres"
+            esp_intro = "L'espace se décompose en trois sous-espaces invariants selon le signe\n"
+            esp_intro += "de la partie réelle des valeurs propres :\n"
+            esp_intro += "- $E_s$ (Stable) : associé aux valeurs propres de partie réelle $< 0$.\n"
+            esp_intro += "- $E_u$ (Instable) : associé aux valeurs propres de partie réelle $> 0$.\n"
+            esp_intro += "- $E_c$ (Centre) : associé aux valeurs propres de partie réelle $= 0$.\n\n"
             
-            # 3. Vecteurs propres et sous-espaces
+            def format_vec(v):
+                return f"[{v[0]:.3f}, {v[1]:.3f}]^T"
+
             if self.is_linear:
                 esp = self.report['eigenspaces']
-                esp_txt = f"Eₛ (stable) : dim={esp['E_s_dim']} base={esp['E_s_basis']}\n"
-                esp_txt += f"Eᵤ (instable) : dim={esp['E_u_dim']} base={esp['E_u_basis']}\n"
-                esp_txt += f"E꜀ (centre) : dim={esp['E_c_dim']} base={esp['E_c_basis']}\n\n"
-                esp_txt += "\nLes sous-espaces propres structurent le flux autour du point fixe.\n"
+                content = esp_intro + "Pour le système linéaire (à l'origine) :\n\n"
+                if esp['E_s_basis']:
+                    basis_str = ", ".join([f"${format_vec(v)}$" for v in esp['E_s_basis']])
+                    content += f"Sous-espace Stable $E_s$ (Attractif) :\nDimension = {esp['E_s_dim']}. Base : {basis_str}\n\n"
+                if esp['E_u_basis']:
+                    basis_str = ", ".join([f"${format_vec(v)}$" for v in esp['E_u_basis']])
+                    content += f"Sous-espace Instable $E_u$ (Répulsif) :\nDimension = {esp['E_u_dim']}. Base : {basis_str}\n\n"
+                if esp['E_c_basis']:
+                    basis_str = ", ".join([f"${format_vec(v)}$" for v in esp['E_c_basis']])
+                    content += f"Sous-espace Centre $E_c$ (Oscillant) :\nDimension = {esp['E_c_dim']}. Base : {basis_str}\n\n"
+                add_text_page(pdf, esp_title, content)
             else:
-                esp_txt = "Système Non-Linéaire - Sous-espaces Propres Locaux :\n\n"
                 if self.fixed_points_data:
                     for idx, pt in enumerate(self.fixed_points_data):
-                        px, py = pt['point']
                         esp = pt['eigenspaces']
-                        esp_txt += f"Autour de ({px:.2f}, {py:.2f}) :\n"
-                        esp_txt += f"  - Eₛ (stable) : dim={esp['E_s_dim']} base={esp['E_s_basis']}\n"
-                        esp_txt += f"  - Eᵤ (instable) : dim={esp['E_u_dim']} base={esp['E_u_basis']}\n"
-                        esp_txt += f"  - E꜀ (centre) : dim={esp['E_c_dim']} base={esp['E_c_basis']}\n\n"
-                else:
-                    esp_txt += "Aucun point fixe à analyser.\n"
-            add_text_page(pdf, "3. Vecteurs propres et sous-espaces", esp_txt)
-            
-            # 4. Graphique isoclines
+                        px, py = pt['point']
+                        content = esp_intro + f"Pour le point $P = ({px:.2f}, {py:.2f})$ (linéarisé) :\n\n"
+                        if esp['E_s_basis']:
+                            basis_str = ", ".join([f"${format_vec(v)}$" for v in esp['E_s_basis']])
+                            content += f"$E_s$ (Stable) : Dim = {esp['E_s_dim']}. Base : {basis_str}\n\n"
+                        if esp['E_u_basis']:
+                            basis_str = ", ".join([f"${format_vec(v)}$" for v in esp['E_u_basis']])
+                            content += f"$E_u$ (Instable) : Dim = {esp['E_u_dim']}. Base : {basis_str}\n\n"
+                        if esp['E_c_basis']:
+                            basis_str = ", ".join([f"${format_vec(v)}$" for v in esp['E_c_basis']])
+                            content += f"$E_c$ (Centre) : Dim = {esp['E_c_dim']}. Base : {basis_str}\n\n"
+                        add_text_page(pdf, f"3.{idx+1} Sous-espaces pour ({px:.2f}, {py:.2f})", content)
+
+            # 4. Isoclines
             fig_iso = self.plot_isoclines(plot=False)
+            fig_iso.suptitle("4. Isoclines Orientées", fontsize=16, weight='bold', y=0.98)
             pdf.savefig(fig_iso)
             plt.close(fig_iso)
-            add_text_page(pdf, "4. Isoclines orientées", "Les isoclines ẋ=0 et ẏ=0 séparent les régions de directions opposées. Les flèches indiquent l'orientation du mouvement sur chaque isocline.")
-            
-            # 5. Portrait de phase final
+
+            # 5. Portrait de phase Global
             fig_phase = self.plot_final_phase_portrait(plot=False)
+            fig_phase.suptitle("5. Portrait de Phase Global", fontsize=16, weight='bold', y=0.98)
             pdf.savefig(fig_phase)
             plt.close(fig_phase)
-            add_text_page(pdf, "5. Portrait de phase final", "Ce graphique intègre toutes les informations : isoclines, directions principales, sous-espaces, trajectoires, points fixes et flux.")
+
+            # 6. Portraits de phase locaux (Pour les non-linéaires)
+            if not self.is_linear and self.fixed_points_data:
+                for idx, pt in enumerate(self.fixed_points_data):
+                    px, py = pt['point']
+                    local_analyzer = DynamicsAnalyzer(pt['jacobian'], domain=(-2, 2, -2, 2))
+                    fig_local = local_analyzer.plot_final_phase_portrait(plot=False)
+                    fig_local.suptitle(f"5.{idx+1} Portrait Local Linéarisé autour de ({px:.2f}, {py:.2f})", fontsize=16, weight='bold', y=0.98)
+                    pdf.savefig(fig_local)
+                    plt.close(fig_local)
+
+            mpl.rcParams.update(mpl.rcParamsDefault)
             
-            # 6. Conclusion
-            concl = "Le comportement dynamique global dépend de la nature des valeurs propres et des sous-espaces.\n"
-            if self.is_linear:
-                nat = self.report['eigen']['nature']
-                if 'nœud' in nat.lower() or 'stable' in nat.lower():
-                    concl += "Le système converge vers le point fixe (stable)."
-                elif 'instable' in nat.lower():
-                    concl += "Le système diverge du point fixe (instable)."
-                elif 'selle' in nat.lower():
-                    concl += "Le point fixe est une selle : certaines directions sont stables, d'autres instables."
-                elif 'centre' in nat.lower():
-                    concl += "Le système présente des oscillations périodiques (centre)."
-                else:
-                    concl += f"Nature : {nat}"
-            else:
-                concl += "Pour ce système non-linéaire, plusieurs points fixes ont été analysés localement. Le comportement dynamique global présente des régions d'attraction, des trajectoires divergentes ou des orbites cycliques autour de ces points fixes."
-            add_text_page(pdf, "6. Conclusion", concl)
         return filename
