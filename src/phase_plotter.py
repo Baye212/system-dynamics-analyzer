@@ -216,10 +216,10 @@ def plot_final_phase_portrait(analyzer, n_trajectories=8, traj_len=10, plot=True
             for pt_data in analyzer.fixed_points_data:
                 px, py = pt_data['point']
                 nature_pt = pt_data['nature']
-                if 'stable' in nature_pt.lower() or 'stable' in pt_data['classification']:
-                    color_pt = 'go' # Vert pour stable
-                elif 'instable' in nature_pt.lower() or 'instable' in pt_data['classification']:
+                if 'instable' in nature_pt.lower() or any('instable' in c.lower() for c in pt_data['classification']):
                     color_pt = 'ro' # Rouge pour instable
+                elif 'stable' in nature_pt.lower() or any('stable' in c.lower() for c in pt_data['classification']):
+                    color_pt = 'go' # Vert pour stable
                 elif 'selle' in nature_pt.lower():
                     color_pt = 'bo' # Bleu pour selle
                 else:
