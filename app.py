@@ -284,11 +284,32 @@ else:
     # ── Onglet 4 : Portrait de phase ────────────────────────────────────
     with tab4:
         st.markdown("---")
-        st.markdown("*Synthèse complète : isoclines, trajectoires et analyse qualitative.*")
-        with st.spinner("Génération du portrait de phase..."):
-            fig_phase = analyzer.plot_final_phase_portrait(plot=False)
-        st.pyplot(fig_phase, clear_figure=True)
-        plt.close(fig_phase)
+        
+        if not analyzer.is_linear and selected_point_data:
+            view_mode = st.radio(
+                "Mode d'affichage du portrait de phase :",
+                ["🌍 Globale (tout le domaine)", "🔍 Locale (linéarisation autour du point sélectionné)"],
+                horizontal=True,
+                key="radio_phase_view"
+            )
+        else:
+            view_mode = "🌍 Globale (tout le domaine)"
+            
+        if "Locale" in view_mode:
+            st.markdown(f"*Portrait de phase local (linéarisé) autour du point **({selected_point_data['point'][0]:.3f}, {selected_point_data['point'][1]:.3f})**.*")
+            with st.spinner("Génération du portrait de phase local..."):
+                # Créer un analyseur temporaire pour le système linéarisé (matrice Jacobienne)
+                # Le domaine est centré sur 0 pour montrer les variations locales
+                local_analyzer = DynamicsAnalyzer(selected_point_data['jacobian'], domain=(-2, 2, -2, 2))
+                fig_phase = local_analyzer.plot_final_phase_portrait(plot=False)
+            st.pyplot(fig_phase, clear_figure=True)
+            plt.close(fig_phase)
+        else:
+            st.markdown("*Synthèse complète : isoclines, trajectoires et analyse qualitative.*")
+            with st.spinner("Génération du portrait de phase global..."):
+                fig_phase = analyzer.plot_final_phase_portrait(plot=False)
+            st.pyplot(fig_phase, clear_figure=True)
+            plt.close(fig_phase)
 
     # ── Onglet 5 : Rapport PDF ───────────────────────────────────────────
     with tab5:
