@@ -143,18 +143,17 @@ class DynamicsAnalyzer:
         for i, (xq, yq) in enumerate(quadrants):
             u, v = f(xq, yq)
             sign = (np.sign(u), np.sign(v))
+            # Composantes radiale et tangentielle du flux par rapport au point fixe
+            radial = (xq - x0)*u + (yq - y0)*v
+            tangent = (xq - x0)*v - (yq - y0)*u
             if sign == (0,0):
                 sens = 'Stationnaire'
-            elif sign[0] == 0:
-                sens = 'Verticale'
-            elif sign[1] == 0:
-                sens = 'Horizontale'
-            elif sign == (1,1):
-                sens = 'Divergent'
-            elif sign == (-1,-1):
-                sens = 'Convergent'
-            else:
+            elif abs(tangent) > abs(radial):
                 sens = 'Tournant'
+            elif radial > 0:
+                sens = 'Divergent'
+            else:
+                sens = 'Convergent'
             summary.append({'quadrant':i+1,'point':(xq,yq),'sign':sign,'sens':sens})
             
         self.report['quadrants'] = summary
@@ -337,3 +336,4 @@ class DynamicsAnalyzer:
             mpl.rcParams.update(mpl.rcParamsDefault)
             
         return filename
+## e m'appelle Mor DIOUF je suis étudiant  à l'université Assane SECK de Ziguinchor 

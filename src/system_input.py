@@ -50,7 +50,9 @@ def parse_equations(eq1: str, eq2: str) -> np.ndarray:
     pattern = r"([+-]?\d*\.?\d*)\*?x"  # matches ax
     pattern2 = r"([+-]?\d*\.?\d*)\*?y"  # matches by
     def get_coeff(eq, var):
-        m = re.search(pattern if var == 'x' else pattern2, eq.replace(' ', ''))
+        # Ne garder que le membre de droite (sinon le x de "x'" serait lu comme un terme)
+        rhs = eq.split('=')[-1]
+        m = re.search(pattern if var == 'x' else pattern2, rhs.replace(' ', ''))
         if m:
             c = m.group(1)
             return float(c) if c not in ('', '+', '-') else (1.0 if c in ('', '+') else -1.0)

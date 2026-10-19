@@ -40,4 +40,20 @@ def test_center():
     eigvals = np.array([2.0j, -2.0j])
     res = classify_eigenvalues(eigvals)
     assert res['nature'] == 'Centre'
-    assert all(c == 'Centre (cycle limite)' for c in res['classification'])
+    assert all(c == 'Centre (imaginaire pur)' for c in res['classification'])
+
+def test_numerical_noise_center():
+    # Partie réelle résiduelle due aux arrondis : doit rester un centre
+    eigvals = np.array([1e-16 + 1.0j, 1e-16 - 1.0j])
+    assert classify_eigenvalues(eigvals)['nature'] == 'Centre'
+
+def test_zero_eigenvalue():
+    res = classify_eigenvalues(np.array([0.0, -1.0]))
+    assert res['nature'] == 'Cas dégénéré (valeur propre nulle)'
+    assert res['classification'][0] == 'Neutre (λ = 0)'
+
+def test_star_and_improper_node():
+    eig = np.array([1.0, 1.0])
+    assert classify_eigenvalues(eig, np.eye(2))['nature'] == 'Nœud propre (étoile) instable'
+    J = np.array([[1.0, 1.0], [0.0, 1.0]])
+    assert classify_eigenvalues(eig, J)['nature'] == 'Nœud impropre (dégénéré) instable'

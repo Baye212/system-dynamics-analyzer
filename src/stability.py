@@ -3,62 +3,80 @@ Module stability.py : Analyse et classification de la stabilité des points fixe
 à partir de leurs valeurs propres.
 """
 import numpy as np
-from typing import Dict
+from typing import Dict, Optional
 
-def classify_eigenvalues(eigvals: np.ndarray) -> Dict:
+# Tolérance numérique : en dessous, une quantité est considérée comme nulle
+TOL = 1e-9
+
+
+def _sign(x: float, tol: float = TOL) -> int:
+    """Signe de x avec tolérance numérique (0 si |x| <= tol)."""
+    if abs(x) <= tol:
+        return 0
+    return 1 if x > 0 else -1
+
+
+def clean_eigenvalues(eigvals: np.ndarray, tol: float = TOL) -> np.ndarray:
+    """Supprime les parties imaginaires résiduelles (bruit numérique) si toutes sont négligeables."""
+    eigvals = np.asarray(eigvals)
+    if np.iscomplexobj(eigvals) and np.all(np.abs(eigvals.imag) <= tol):
+        return eigvals.real
+    return eigvals
+
+
+def classify_eigenvalues(eigvals: np.ndarray, A: Optional[np.ndarray] = None) -> Dict:
     """
     Classifie la stabilité et détermine la nature d'un point fixe à partir de ses valeurs propres (2D).
-    
+
     Args:
         eigvals: Tableau numpy contenant les valeurs propres.
-        
+        A: Matrice du système (optionnelle). Permet de distinguer, pour une valeur propre
+           double, le nœud propre (étoile, A = λI) du nœud impropre (dégénéré, non diagonalisable).
+
     Returns:
         Un dictionnaire contenant :
-            - 'valeurs_propres': Le tableau d'origine
+            - 'valeurs_propres': Les valeurs propres (réelles si les parties imaginaires sont négligeables)
             - 'classification': Une liste des classifications individuelles pour chaque valeur propre
             - 'nature': La nature globale du point fixe (ex: Selle, Nœud stable, Foyer stable, etc.)
     """
+    eigvals = clean_eigenvalues(eigvals)
+    is_real = not np.iscomplexobj(eigvals)
+
     classification = []
     for val in eigvals:
-        if np.isclose(val.imag, 0):
-            # Valeur propre réelle
-            real_val = val.real
-            if real_val < 0:
-                cls = 'Stable'
-            elif real_val > 0:
-                cls = 'Instable'
-            else:
-                cls = 'Centre'
+        s = _sign(np.real(val))
+        if is_real:
+            cls = {-1: 'Stable', 1: 'Instable', 0: 'Neutre (λ = 0)'}[s]
         else:
-            # Valeur propre complexe
-            if val.real < 0:
-                cls = 'Stable (spirale)'
-            elif val.real > 0:
-                cls = 'Instable (spirale)'
-            else:
-                cls = 'Centre (cycle limite)'
+            cls = {-1: 'Stable (spirale)', 1: 'Instable (spirale)', 0: 'Centre (imaginaire pur)'}[s]
         classification.append(cls)
-        
+
     # Nature du point fixe
-    if np.all(np.isreal(eigvals)):
-        if np.all(eigvals < 0):
-            nat = 'Nœud stable'
-        elif np.all(eigvals > 0):
-            nat = 'Nœud instable'
-        elif np.any(eigvals < 0) and np.any(eigvals > 0):
+    signs = [_sign(np.real(v)) for v in eigvals]
+    if is_real:
+        if 0 in signs:
+            nat = 'Cas dégénéré (valeur propre nulle)'
+        elif signs[0] != signs[1]:
             nat = 'Selle'
         else:
-            nat = 'Cas dégénéré'
+            stab = 'stable' if signs[0] < 0 else 'instable'
+            l1, l2 = eigvals
+            if abs(l1 - l2) <= TOL * max(1.0, abs(l1)):
+                # Valeur propre double : étoile si A = λI, sinon nœud dégénéré
+                if A is not None and not np.allclose(A, l1 * np.eye(2), atol=TOL):
+                    nat = f'Nœud impropre (dégénéré) {stab}'
+                else:
+                    nat = f'Nœud propre (étoile) {stab}'
+            else:
+                nat = f'Nœud {stab}'
     else:
-        if np.all(np.real(eigvals) < 0):
+        if signs[0] < 0:
             nat = 'Foyer stable'
-        elif np.all(np.real(eigvals) > 0):
+        elif signs[0] > 0:
             nat = 'Foyer instable'
-        elif np.all(np.real(eigvals) == 0):
-            nat = 'Centre'
         else:
-            nat = 'Foyer-selle'
-            
+            nat = 'Centre'
+
     return {
         'valeurs_propres': eigvals,
         'classification': classification,

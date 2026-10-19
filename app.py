@@ -31,6 +31,14 @@ st.markdown("""
 # Fonctions d'affichage
 # ═══════════════════════════════════════════════════════════════════════════
 
+def format_eigenvalue(val):
+    """Écrit une valeur propre en LaTeX : réelle (a) ou complexe (a ± bi)."""
+    if abs(np.imag(val)) < 1e-9:
+        return f"{np.real(val):.3f}"
+    sign = "+" if np.imag(val) > 0 else "-"
+    return f"{np.real(val):.3f} {sign} {abs(np.imag(val)):.3f}\\,i"
+
+
 def format_eigenvalues_display(eig_data):
     """Formate l'affichage des valeurs propres en style LaTeX."""
     st.markdown("### 📊 **Analyse des Valeurs Propres**")
@@ -38,16 +46,14 @@ def format_eigenvalues_display(eig_data):
     st.markdown("**Valeurs propres** $\\lambda$ :")
     if len(eigenvalues) == 2:
         lambda1, lambda2 = eigenvalues
-        st.latex(f"\\lambda_1 = {lambda1:.3f}, \\quad \\lambda_2 = {lambda2:.3f}")
+        st.latex(f"\\lambda_1 = {format_eigenvalue(lambda1)}, \\quad \\lambda_2 = {format_eigenvalue(lambda2)}")
     else:
         st.write(f"λ = {eigenvalues}")
 
     st.markdown("**Classification** :")
     for i, (val, cls) in enumerate(zip(eigenvalues, eig_data['classification'])):
-        if np.iscomplexobj(val):
-            color = "🟢" if val.real < 0 else ("🔴" if val.real > 0 else "🟡")
-        else:
-            color = "🟢" if val < 0 else ("🔴" if val > 0 else "🟡")
+        re = np.real(val)
+        color = "🟢" if re < -1e-9 else ("🔴" if re > 1e-9 else "🟡")
         st.markdown(f"- {color} $\\lambda_{{{i+1}}}$ : **{cls}**")
 
     nature = eig_data['nature']

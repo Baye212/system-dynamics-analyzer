@@ -6,6 +6,7 @@ import numpy as np
 import sympy as sp
 from typing import Dict, List, Tuple, Callable
 from src.stability import classify_eigenvalues
+from src.linear_analyzer import compute_eigenspaces
 
 def analyze_nonlinear_system(f1_str: str, f2_str: str, domain: Tuple[float, float, float, float]) -> Dict:
     """
@@ -26,10 +27,6 @@ def analyze_nonlinear_system(f1_str: str, f2_str: str, domain: Tuple[float, floa
     x1, x2 = sp.symbols('x1 x2')
     
     # 1. Parsing sécurisé
-    expr1 = sp.sympify(f1_str.replace('x', 'x1').replace('y', 'x2').replace('x11', 'x1').replace('x22', 'x2'))
-    # Wait, some formulas might already have x1 or x2, let's normalize:
-    # First convert 'x1' -> 'x1', 'x2' -> 'x2', but if they are 'x' and 'y':
-    # Let's write a robust replacement helper
     expr1 = normalize_variables(f1_str, x1, x2)
     expr2 = normalize_variables(f2_str, x1, x2)
     
@@ -84,32 +81,8 @@ def analyze_nonlinear_system(f1_str: str, f2_str: str, domain: Tuple[float, floa
             J_num = np.array(J_eval.tolist(), dtype=float)
             
             # Calcul valeurs propres
-            eigvals, eigvecs = np.linalg.eig(J_num)
-            
-            local_stability = classify_eigenvalues(eigvals)
-            
-            # Calcul des sous-espaces locaux
-            E_s, E_u, E_c = [], [], []
-            for i, val in enumerate(eigvals):
-                v = eigvecs[:, i].real
-                norm = np.linalg.norm(v)
-                if norm > 1e-10:
-                    v = v / norm
-                    
-                if np.isclose(val.imag, 0):
-                    if val.real < 0:
-                        E_s.append(v)
-                    elif val.real > 0:
-                        E_u.append(v)
-                    else:
-                        E_c.append(v)
-                else:
-                    if np.isclose(val.real, 0):
-                        E_c.append(v)
-                    elif val.real < 0:
-                        E_s.append(v)
-                    else:
-                        E_u.append(v)
+            eigvals = np.linalg.eigvals(J_num)
+            local_stability = classify_eigenvalues(eigvals, J_num)
             
             points_analysis.append({
                 'point': (px, py),
@@ -117,11 +90,7 @@ def analyze_nonlinear_system(f1_str: str, f2_str: str, domain: Tuple[float, floa
                 'valeurs_propres': local_stability['valeurs_propres'],
                 'classification': local_stability['classification'],
                 'nature': local_stability['nature'],
-                'eigenspaces': {
-                    'E_s_dim': len(E_s), 'E_s_basis': E_s,
-                    'E_u_dim': len(E_u), 'E_u_basis': E_u,
-                    'E_c_dim': len(E_c), 'E_c_basis': E_c
-                }
+                'eigenspaces': compute_eigenspaces(J_num)
             })
         except Exception:
             continue

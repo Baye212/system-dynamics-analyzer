@@ -24,11 +24,11 @@ def test_nonlinear_fixed_points():
     
     # Vérification des stabilités locales
     # Jacobienne J = [[1, -2*x2], [-1, 1]]
-    # Au point (0,0) : J = [[1, 0], [-1, 1]] => val_propres = 1.0, 1.0 (Nœud instable)
+    # Au point (0,0) : J = [[1, 0], [-1, 1]] => val_propres = 1.0, 1.0 (bloc de Jordan => Nœud impropre)
     # Au point (1,1) : J = [[1, -2], [-1, 1]] => trace = 2, det = 1 - 2 = -1 => Selle
     for pt in points:
         px, py = pt['point']
         if np.allclose([px, py], [0.0, 0.0]):
-            assert pt['nature'] == 'Nœud instable'
+            assert pt['nature'] == 'Nœud impropre (dégénéré) instable'
         elif np.allclose([px, py], [1.0, 1.0]):
             assert pt['nature'] == 'Selle'
